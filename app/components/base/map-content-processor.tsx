@@ -1,126 +1,123 @@
 import React from 'react'
+import yaml from 'js-yaml'
 import ArcGISMap from './arcgis-map'
 
-// Define a standard tag format for ArcGIS maps
-// <arcgis-map latitude="40.7128" longitude="-74.0060" zoom="10" />
-// <arcgis-map latitude={40.7128} longitude={-74.0060} zoom={10} />
+// Regex for YAML-based map blocks
+const MAP_YAML_REGEX = /```map-arcgis-yaml\n([\s\S]*?)```/g
 
-// Function to create a regex pattern that matches both quoted strings and curly brace values
-const createMapTagRegex = (tagName: string) => {
-  return new RegExp(
-    `<${tagName}[\\s\\n]+`
-    // Match any attributes, capturing the entire attribute string
-    + '([^>]*?)'
-    // End of tag
-    + `(?:/>|>(?:</${tagName}>))`,
-    'g',
-  )
+// Types for YAML-based configuration
+type ArcGISMapService = {
+  type: string
+  url: string
+  layerId?: number
+  outFields?: string[]
+  where?: string
+  opacity?: number
+  [key: string]: any
 }
 
-// Create regex patterns for different tag variants
-const MAP_TAG_REGEX = createMapTagRegex('arcgis-map')
-const ARCGISMAP_TAG_REGEX = createMapTagRegex('ArcgisMap')
-const ARCGIS_MAP_TAG_REGEX = createMapTagRegex('ArcGISMap')
-
-// Type for extracted map parameters
-type MapParameters = {
-  latitude: number
-  longitude: number
+type ArcGISMapYAMLConfig = {
+  center?: number[] | string
   zoom?: number
   basemap?: string
+  ui?: Record<string, boolean>
+  services?: ArcGISMapService[]
+  options?: Record<string, any>
+  token?: string
+  portal?: {
+    url: string
+    itemId: string
+  }
   height?: string
   width?: string
 }
 
-// Extract map parameters from attribute string
-function extractMapParams(attributeString: string): MapParameters {
-  // Create regexes for each attribute with support for both quoted and curly brace formats
-  const latitudeRegex = /(?:latitude|lat)=(?:["']([^"']+)["']|\{([^}]+)\})/i
-  const longitudeRegex = /(?:longitude|lng|long)=(?:["']([^"']+)["']|\{([^}]+)\})/i
-  const zoomRegex = /(?:zoom|z)=(?:["']([^"']+)["']|\{([^}]+)\})/i
-  const basemapRegex = /(?:basemap|map)=(?:["']([^"']+)["']|\{([^}]+)\})/i
-  const heightRegex = /(?:height|h)=(?:["']([^"']+)["']|\{([^}]+)\})/i
-  const widthRegex = /(?:width|w)=(?:["']([^"']+)["']|\{([^}]+)\})/i
-
-  // Extract values
-  const latMatch = attributeString.match(latitudeRegex)
-  const lngMatch = attributeString.match(longitudeRegex)
-  const zoomMatch = attributeString.match(zoomRegex)
-  const basemapMatch = attributeString.match(basemapRegex)
-  const heightMatch = attributeString.match(heightRegex)
-  const widthMatch = attributeString.match(widthRegex)
-
-  // Parse values, if a match exists take the first or second capture group
-  const latitude = latMatch ? parseFloat(latMatch[1] || latMatch[2]) : 0
-  const longitude = lngMatch ? parseFloat(lngMatch[1] || lngMatch[2]) : 0
-  const zoom = zoomMatch ? parseInt(zoomMatch[1] || zoomMatch[2], 10) : undefined
-  const basemap = basemapMatch ? (basemapMatch[1] || basemapMatch[2]) : undefined
-  const height = heightMatch ? (heightMatch[1] || heightMatch[2]) : undefined
-  const width = widthMatch ? (widthMatch[1] || widthMatch[2]) : undefined
-
-  console.log('Extracted parameters (new):', { latitude, longitude, zoom, basemap, height, width })
-  return { latitude, longitude, zoom, basemap, height, width }
-}
-
-// Process content to extract map parameters and replace tags with placeholders
-export function processMapContent(content: string): {
+/**
+ * Process YAML map blocks within content
+ */
+function processYamlMatches(content: string): {
   processedContent: string
   mapComponents: JSX.Element[]
 } {
   const mapComponents: JSX.Element[] = []
   let processedContent = content
-  let index = 0
+  let currentIndex = 0
 
-  // Process map tags in different formats (kebab-case, PascalCase, etc.)
-  const processTagMatches = (regex: RegExp) => {
-    // Using a different pattern to avoid linting error with assignment in while condition
-    let matchResult
-    while (true) {
-      matchResult = regex.exec(processedContent)
-      if (matchResult === null)
-        break
-      const match = matchResult
-      const placeholder = `__MAP_PLACEHOLDER_${index}__`
+  // Make a copy of the content to iterate over matches
+  const contentCopy = content
+
+  // Find all YAML map blocks
+  let match
+  // Reset regex index
+  MAP_YAML_REGEX.lastIndex = 0
+
+  // eslint-disable-next-line no-cond-assign
+  while ((match = MAP_YAML_REGEX.exec(contentCopy)) !== null) {
+    try {
+      const yamlContent = match[1]
+      const placeholder = `__MAP_PLACEHOLDER_${currentIndex}__`
       const fullMatch = match[0]
-      const attributeString = match[1] || ''
-      const params = extractMapParams(attributeString)
 
-      // Log for debugging
-      console.log(`Found map tag: ${fullMatch}`)
-      console.log('Extracted parameters:', params)
+      // Parse YAML content
+      const parsedConfig = yaml.load(yamlContent) as ArcGISMapYAMLConfig
+      console.log('Parsed YAML map config:', parsedConfig)
 
-      // Replace the tag with a placeholder
+      // Convert center string to coordinates if needed
+      let latitude = 0
+      let longitude = 0
+
+      if (typeof parsedConfig.center === 'string') {
+        // Parse "lat, lon" format
+        const parts = parsedConfig.center.split(',').map(part => parseFloat(part.trim()))
+        if (parts.length === 2) {
+          latitude = parts[0]
+          longitude = parts[1]
+        }
+      } else if (Array.isArray(parsedConfig.center) && parsedConfig.center.length >= 2) {
+        latitude = parsedConfig.center[0]
+        longitude = parsedConfig.center[1]
+      }
+
+      // Replace YAML block with placeholder
       processedContent = processedContent.replace(fullMatch, placeholder)
 
-      // Create the map component
+      // Create map component with YAML config
       mapComponents.push(
         <ArcGISMap
-          key={`map-${index}`}
-          latitude={params.latitude}
-          longitude={params.longitude}
-          zoom={params.zoom}
-          basemap={params.basemap}
-          height={params.height || '400px'}
-          width={params.width || '100%'}
+          key={`map-${currentIndex}`}
+          yamlConfig={parsedConfig}
+          latitude={latitude}
+          longitude={longitude}
+          zoom={parsedConfig.zoom}
+          basemap={parsedConfig.basemap}
+          height={parsedConfig.height || '400px'}
+          width={parsedConfig.width || '100%'}
         />,
       )
 
-      index++
-
-      // Reset lastIndex because we modified the string
-      regex.lastIndex = 0
+      currentIndex++
+    } catch (error) {
+      console.error('Error parsing YAML map configuration:', error)
     }
   }
-
-  // Process all tag formats
-  processTagMatches(MAP_TAG_REGEX) // <arcgis-map> format
-  processTagMatches(ARCGISMAP_TAG_REGEX) // <ArcgisMap> format
-  processTagMatches(ARCGIS_MAP_TAG_REGEX) // <ArcGISMap> format
 
   return { processedContent, mapComponents }
 }
 
-// Component to render content with maps
+/**
+ * Process content to extract map parameters and replace tags with placeholders
+ */
+export function processMapContent(content: string): {
+  processedContent: string
+  mapComponents: JSX.Element[]
+} {
+  // Process YAML blocks only
+  return processYamlMatches(content)
+}
+
+/**
+ * Component to render content with maps
+ */
 export function ContentWithMaps({ content }: { content: string }): JSX.Element {
   // Process content to extract maps and get placeholder content
   const { processedContent, mapComponents } = processMapContent(content)
