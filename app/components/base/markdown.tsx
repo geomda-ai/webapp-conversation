@@ -1,3 +1,4 @@
+import React from 'react'
 import ReactMarkdown from 'react-markdown'
 import 'katex/dist/katex.min.css'
 import RemarkMath from 'remark-math'
@@ -6,8 +7,12 @@ import RehypeKatex from 'rehype-katex'
 import RemarkGfm from 'remark-gfm'
 import SyntaxHighlighter from 'react-syntax-highlighter'
 import { atelierHeathLight } from 'react-syntax-highlighter/dist/esm/styles/hljs'
+import { processMapContent } from './map-content-processor'
 
 export function Markdown(props: { content: string }) {
+  // Process content to extract map tags and generate map components
+  const { processedContent, mapComponents } = processMapContent(props.content)
+
   return (
     <div className="markdown-body">
       <ReactMarkdown
@@ -38,8 +43,15 @@ export function Markdown(props: { content: string }) {
         }}
         linkTarget={'_blank'}
       >
-        {props.content}
+        {processedContent}
       </ReactMarkdown>
+
+      {/* Render maps after markdown */}
+      {mapComponents.map((map, index) => (
+        <div key={`map-container-${index}`} className="map-container">
+          {map}
+        </div>
+      ))}
     </div>
   )
 }

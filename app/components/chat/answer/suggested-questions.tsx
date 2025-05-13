@@ -11,7 +11,7 @@ const SuggestedQuestions: FC<SuggestedQuestionsProps> = ({
   return (
     <div className="flex flex-wrap">
       {suggestedQuestions
-        .filter((q) => !!q && q.trim())
+        .filter(q => !!q && q.trim())
         .map((question, index) => (
           <div
             key={index}

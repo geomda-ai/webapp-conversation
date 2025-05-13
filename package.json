@@ -12,6 +12,8 @@
     "prepare": "husky install ./.husky"
   },
   "dependencies": {
+    "@arcgis/core": "^4.32.10",
+    "@arcgis/map-components": "^4.32.14",
     "@floating-ui/react": "^0.26.2",
     "@formatjs/intl-localematcher": "^0.2.32",
     "@headlessui/react": "^1.7.13",
@@ -21,6 +23,7 @@
     "@monaco-editor/react": "^4.6.0",
     "@remixicon/react": "^4.6.0",
     "@tailwindcss/line-clamp": "^0.4.2",
+    "@types/arcgis-js-api": "^4.28.4",
     "@types/node": "18.15.0",
     "@types/react": "18.0.28",
     "@types/react-dom": "18.0.11",
@@ -33,6 +36,7 @@
     "dify-client": "^2.3.1",
     "eslint": "8.36.0",
     "eslint-config-next": "13.4.0",
+    "esri-loader": "^3.7.0",
     "eventsource-parser": "^1.0.0",
     "husky": "^8.0.3",
     "i18next": "^22.4.13",
