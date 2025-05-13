@@ -23,7 +23,11 @@ import { API_KEY, APP_ID, APP_INFO, isShowPrompt, promptTemplate } from '@/confi
 import type { Annotation as AnnotationType } from '@/types/log'
 import { addFileInfos, sortAgentSorts } from '@/utils/tools'
 
-const Main: FC = () => {
+export type IMainProps = {
+  params: any
+}
+
+const Main: FC<IMainProps> = () => {
   const { t } = useTranslation()
   const media = useBreakpoints()
   const isMobile = media === MediaType.mobile
@@ -228,9 +232,13 @@ const Main: FC = () => {
     (async () => {
       try {
         const [conversationData, appParams] = await Promise.all([fetchConversations(), fetchAppParams()])
-
         // handle current conversation id
-        const { data: conversations } = conversationData as { data: ConversationItem[] }
+        const { data: conversations, error } = conversationData as { data: ConversationItem[]; error: string }
+        if (error) {
+          Toast.notify({ type: 'error', message: error })
+          throw new Error(error)
+          return
+        }
         const _conversationId = getConversationIdFromStorage(APP_ID)
         const isNotNewConversation = conversations.some(item => item.id === _conversationId)
 
@@ -326,13 +334,37 @@ const Main: FC = () => {
     setChatList(newListWithAnswer)
   }
 
+  const transformToServerFile = (fileItem: any) => {
+    return {
+      type: 'image',
+      transfer_method: fileItem.transferMethod,
+      url: fileItem.url,
+      upload_file_id: fileItem.id,
+    }
+  }
+
   const handleSend = async (message: string, files?: VisionFile[]) => {
     if (isResponding) {
       notify({ type: 'info', message: t('app.errorMessage.waitForResponse') })
       return
     }
+    const toServerInputs: Record<string, any> = {}
+    if (currInputs) {
+      Object.keys(currInputs).forEach((key) => {
+        const value = currInputs[key]
+        if (value.supportFileType)
+          toServerInputs[key] = transformToServerFile(value)
+
+        else if (value[0]?.supportFileType)
+          toServerInputs[key] = value.map((item: any) => transformToServerFile(item))
+
+        else
+          toServerInputs[key] = value
+      })
+    }
+
     const data: Record<string, any> = {
-      inputs: currInputs,
+      inputs: toServerInputs,
       query: message,
       conversation_id: isNewConversation ? null : currConversationId,
     }
