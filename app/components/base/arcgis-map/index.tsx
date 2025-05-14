@@ -4,19 +4,24 @@ import React, { useEffect, useRef, useState } from 'react'
 import dynamic from 'next/dynamic'
 import './styles.css'
 
-// Types for the component
-type ArcGISMapProps = {
-  latitude?: number | string
-  longitude?: number | string
-  zoom?: number | string
-  basemap?: string
-  height?: string
-  width?: string
-  yamlConfig?: ArcGISMapYAMLConfig
+// Type for map service layer
+export type ArcGISMapService = {
+  type: string
+  url: string
+  layerId?: number
+  outFields?: string[]
+  where?: string
+  opacity?: number
+  title?: string
+  visible?: boolean
+  popup?: {
+    enabled?: boolean
+  }
+  [key: string]: any
 }
 
-// Type for YAML configuration
-type ArcGISMapYAMLConfig = {
+// Type for YAML configuration - exported for use in other components
+export type ArcGISMapYAMLConfig = {
   center?: [number, number] | string
   zoom?: number
   basemap?: string
@@ -31,12 +36,25 @@ type ArcGISMapYAMLConfig = {
     basemapToggle?: boolean
     scaleBar?: boolean
   }
-  services?: any[]
+  services?: ArcGISMapService[]
   token?: string
   options?: {
     minZoom?: number
     maxZoom?: number
   }
+  height?: string
+  width?: string
+}
+
+// Types for the component
+type ArcGISMapProps = {
+  latitude?: number | string
+  longitude?: number | string
+  zoom?: number | string
+  basemap?: string
+  height?: string
+  width?: string
+  yamlConfig?: ArcGISMapYAMLConfig
 }
 
 // Dynamically import the ArcGIS loader component (client-side only)

@@ -1,36 +1,10 @@
 import React from 'react'
 import yaml from 'js-yaml'
 import ArcGISMap from './arcgis-map'
+import type { ArcGISMapYAMLConfig } from './arcgis-map'
 
-// Regex for YAML-based map blocks
-const MAP_YAML_REGEX = /```map-arcgis-yaml\n([\s\S]*?)```/g
-
-// Types for YAML-based configuration
-type ArcGISMapService = {
-  type: string
-  url: string
-  layerId?: number
-  outFields?: string[]
-  where?: string
-  opacity?: number
-  [key: string]: any
-}
-
-type ArcGISMapYAMLConfig = {
-  center?: number[] | string
-  zoom?: number
-  basemap?: string
-  ui?: Record<string, boolean>
-  services?: ArcGISMapService[]
-  options?: Record<string, any>
-  token?: string
-  portal?: {
-    url: string
-    itemId: string
-  }
-  height?: string
-  width?: string
-}
+// Regex for YAML-based map blocks - support both formats
+const MAP_YAML_REGEX = /```(?:map-arcgis-yaml|arcgis-map)\n([\s\S]*?)```/g
 
 /**
  * Process YAML map blocks within content
@@ -58,8 +32,10 @@ function processYamlMatches(content: string): {
       const placeholder = `__MAP_PLACEHOLDER_${currentIndex}__`
       const fullMatch = match[0]
 
+      // Clean up any potential markdown-formatted links in YAML before parsing
+      const cleanYamlContent = yamlContent.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '$2')
       // Parse YAML content
-      const parsedConfig = yaml.load(yamlContent) as ArcGISMapYAMLConfig
+      const parsedConfig = yaml.load(cleanYamlContent) as ArcGISMapYAMLConfig
       console.log('Parsed YAML map config:', parsedConfig)
 
       // Convert center string to coordinates if needed
@@ -73,7 +49,8 @@ function processYamlMatches(content: string): {
           latitude = parts[0]
           longitude = parts[1]
         }
-      } else if (Array.isArray(parsedConfig.center) && parsedConfig.center.length >= 2) {
+      }
+      else if (Array.isArray(parsedConfig.center) && parsedConfig.center.length >= 2) {
         latitude = parsedConfig.center[0]
         longitude = parsedConfig.center[1]
       }
@@ -96,7 +73,8 @@ function processYamlMatches(content: string): {
       )
 
       currentIndex++
-    } catch (error) {
+    }
+    catch (error) {
       console.error('Error parsing YAML map configuration:', error)
     }
   }
@@ -127,6 +105,7 @@ export function ContentWithMaps({ content }: { content: string }): JSX.Element {
     return <div dangerouslySetInnerHTML={{ __html: content }} />
 
   // Split content on placeholders
+  // Hide the placeholders themselves by replacing them in the final output
   const contentParts = processedContent.split(/(__MAP_PLACEHOLDER_\d+__)/)
 
   // Map index counter
@@ -140,12 +119,17 @@ export function ContentWithMaps({ content }: { content: string }): JSX.Element {
           // This is a placeholder, render corresponding map
           const currentMap = mapComponents[mapIndex]
           mapIndex++
-          return <div key={`part-${i}`}>{currentMap}</div>
+          return (
+            <div key={`part-${i}`} className="arcgis-map-container" style={{ margin: '1rem 0', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
+              {currentMap}
+            </div>
+          )
         }
-        else {
-          // This is regular content
+        else if (part.trim()) {
+          // This is regular content (only render if not empty)
           return <div key={`part-${i}`} dangerouslySetInnerHTML={{ __html: part }} />
         }
+        return null // Skip empty parts
       })}
     </div>
   )
