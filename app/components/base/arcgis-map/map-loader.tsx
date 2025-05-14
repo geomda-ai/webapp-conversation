@@ -85,6 +85,8 @@ const MapLoader: React.FC<MapLoaderProps> = ({
                 opacity: service.opacity !== undefined ? service.opacity : 1,
                 visible: service.visible !== false,
                 title: service.title || 'Feature Layer',
+                // Apply SQL where clause filter if provided
+                definitionExpression: service.where || null,
                 popupTemplate: {
                   title: '{name}', // Use the name field as the title
                   content: [
