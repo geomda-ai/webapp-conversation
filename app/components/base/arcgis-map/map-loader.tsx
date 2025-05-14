@@ -33,62 +33,163 @@ const MapLoader: React.FC<MapLoaderProps> = ({
         for (const service of services) {
           console.log(`Loading service: ${service.title || 'Unnamed layer'}`, service)
 
-          // Import layer modules dynamically based on service type
-          if (service.type === 'FeatureServer' || service.type === 'FeatureService' || service.url?.toLowerCase().includes('featureserver')) {
-            const FeatureLayer = (await import('@arcgis/core/layers/FeatureLayer')).default
-            const layer = new FeatureLayer({
-              url: service.url,
-              outFields: service.outFields || ['*'],
-              opacity: service.opacity !== undefined ? service.opacity : 1,
-              visible: service.visible !== false,
-              title: service.title || 'Feature Layer',
-              // Add popup template if enabled
-              popupTemplate: service.popup?.enabled
-                ? {
-                  title: service.title || 'Feature Information',
-                  content: '*', // Show all fields
-                }
-                : undefined,
-            })
-            map.add(layer)
+          try {
+            // Build service URL with proper handling for layer IDs and special characters
+            let serviceUrl = service.url
+            if (service.layerId !== undefined)
+              serviceUrl = `${service.url}/${service.layerId}`
+
+            // Make sure URL special characters are properly encoded
+            try {
+              // Only encode the URL part after the domain to avoid encoding the protocol
+              const urlParts = serviceUrl.split('/')
+              const domain = urlParts.slice(0, 3).join('/')
+              const path = urlParts.slice(3).join('/')
+              const encodedPath = encodeURI(decodeURI(path)) // Fix double-encoding issues
+              serviceUrl = `${domain}/${encodedPath}`
+              console.log('Encoded service URL:', serviceUrl)
+            }
+            catch (error) {
+              console.warn('Error encoding service URL:', error)
+              // Continue with original URL if encoding fails
+            }
+
+            // Configure popup template regardless of layer type
+            // Use content array format which has better support across different ArcGIS versions
+            const popupTemplate = {
+              title: service.title || 'Feature Information',
+              content: [
+                {
+                  type: 'fields',
+                  fieldInfos: [
+                    { fieldName: '*' },
+                  ],
+                },
+              ],
+            }
+
+            // Log popup configuration for debugging
+            console.log('PopupTemplate configuration:', popupTemplate)
+
+            // Import layer modules dynamically based on service type
+            if (service.type === 'FeatureServer' || service.type === 'FeatureService'
+              || (service.url && service.url.toLowerCase().includes('featureserver'))) {
+              // Import FeatureLayer class
+              const FeatureLayer = (await import('@arcgis/core/layers/FeatureLayer')).default
+
+              // Create the feature layer with error handling
+              const layer = new FeatureLayer({
+                url: serviceUrl,
+                outFields: ['*'], // Force '*' to ensure all fields are available for popup
+                opacity: service.opacity !== undefined ? service.opacity : 1,
+                visible: service.visible !== false,
+                title: service.title || 'Feature Layer',
+                popupTemplate: {
+                  title: '{name}', // Use the name field as the title
+                  content: [
+                    {
+                      type: 'fields',
+                      fieldInfos: [
+                        { fieldName: 'name', label: 'Station Name', visible: true },
+                        { fieldName: 'brand', label: 'Brand', visible: true },
+                        { fieldName: 'address', label: 'Address', visible: true },
+                        { fieldName: 'services', label: 'Services', visible: true },
+                        { fieldName: 'ObjectId', label: 'ID', visible: true },
+                      ],
+                    },
+                  ],
+                },
+              })
+
+              // Add error handling for the layer
+              layer.when(
+                () => console.log(`Successfully loaded layer: ${service.title || 'Unnamed layer'}`),
+                (error: any) => console.warn(`Error loading layer: ${service.title || 'Unnamed layer'}`, error),
+              )
+
+              map.add(layer)
+            }
+            else if (service.type === 'MapServer'
+              || (service.url && service.url.toLowerCase().includes('mapserver'))) {
+              // Import MapImageLayer class
+              const MapImageLayer = (await import('@arcgis/core/layers/MapImageLayer')).default
+
+              // Create MapImageLayer
+              const layer = new MapImageLayer({
+                url: serviceUrl,
+                opacity: service.opacity !== undefined ? service.opacity : 1,
+                visible: service.visible !== false,
+                title: service.title || 'Map Layer',
+                // For MapImageLayer, popups are set on sublayers
+                sublayers: [
+                  {
+                    id: 0, // Use appropriate sublayer ID
+                    popupTemplate,
+                  },
+                ],
+              })
+
+              // Add error handling
+              layer.when(
+                () => console.log(`Successfully loaded MapServer layer: ${service.title || 'Unnamed layer'}`),
+                (error: any) => console.warn(`Error loading MapServer layer: ${service.title || 'Unnamed layer'}`, error),
+              )
+
+              map.add(layer)
+            }
+            else if (service.type === 'ImageServer'
+              || (service.url && service.url.toLowerCase().includes('imageserver'))) {
+              // Import ImageryLayer class
+              const ImageryLayer = (await import('@arcgis/core/layers/ImageryLayer')).default
+
+              // Create ImageryLayer
+              const layer = new ImageryLayer({
+                url: serviceUrl,
+                opacity: service.opacity !== undefined ? service.opacity : 1,
+                visible: service.visible !== false,
+                title: service.title || 'Imagery Layer',
+              })
+
+              // Add error handling
+              layer.when(
+                () => console.log(`Successfully loaded ImageServer layer: ${service.title || 'Unnamed layer'}`),
+                (error: any) => console.warn(`Error loading ImageServer layer: ${service.title || 'Unnamed layer'}`, error),
+              )
+
+              map.add(layer)
+            }
+            else if (service.type === 'VectorTileServer'
+              || (service.url && service.url.toLowerCase().includes('vectortileserver'))) {
+              // Import VectorTileLayer class
+              const VectorTileLayer = (await import('@arcgis/core/layers/VectorTileLayer')).default
+
+              // Create VectorTileLayer
+              const layer = new VectorTileLayer({
+                url: serviceUrl,
+                opacity: service.opacity !== undefined ? service.opacity : 1,
+                visible: service.visible !== false,
+                title: service.title || 'Vector Tile Layer',
+              })
+
+              // Add error handling
+              layer.when(
+                () => console.log(`Successfully loaded VectorTile layer: ${service.title || 'Unnamed layer'}`),
+                (error: any) => console.warn(`Error loading VectorTile layer: ${service.title || 'Unnamed layer'}`, error),
+              )
+
+              map.add(layer)
+            }
+            else {
+              console.warn(`Unsupported layer type for service: ${service.title || 'Unnamed layer'}`, service)
+            }
           }
-          else if (service.type === 'MapServer' || service.url?.toLowerCase().includes('mapserver')) {
-            const MapImageLayer = (await import('@arcgis/core/layers/MapImageLayer')).default
-            const layer = new MapImageLayer({
-              url: service.url,
-              opacity: service.opacity !== undefined ? service.opacity : 1,
-              visible: service.visible !== false,
-              title: service.title || 'Map Layer',
-            })
-            map.add(layer)
-          }
-          else if (service.type === 'ImageServer' || service.url?.toLowerCase().includes('imageserver')) {
-            const ImageryLayer = (await import('@arcgis/core/layers/ImageryLayer')).default
-            const layer = new ImageryLayer({
-              url: service.url,
-              opacity: service.opacity !== undefined ? service.opacity : 1,
-              visible: service.visible !== false,
-              title: service.title || 'Imagery Layer',
-            })
-            map.add(layer)
-          }
-          else if (service.type === 'VectorTileServer' || service.url?.toLowerCase().includes('vectortileserver')) {
-            const VectorTileLayer = (await import('@arcgis/core/layers/VectorTileLayer')).default
-            const layer = new VectorTileLayer({
-              url: service.url,
-              opacity: service.opacity !== undefined ? service.opacity : 1,
-              visible: service.visible !== false,
-              title: service.title || 'Vector Tile Layer',
-            })
-            map.add(layer)
-          }
-          else {
-            console.warn(`Unsupported layer type for service: ${service.title || 'Unnamed layer'}`, service)
+          catch (layerError) {
+            console.error(`Error creating layer for service ${service.title || 'Unnamed layer'}:`, layerError)
           }
         }
       }
       catch (error) {
-        console.error('Error loading layers:', error)
+        console.error('Error in loadLayers:', error)
       }
     }
 
@@ -160,6 +261,54 @@ const MapLoader: React.FC<MapLoaderProps> = ({
             minZoom: yamlConfig?.options?.minZoom || 1,
             maxZoom: yamlConfig?.options?.maxZoom || 18,
           },
+          popup: {
+            dockEnabled: true,
+            dockOptions: {
+              buttonEnabled: true,
+              breakpoint: false,
+              position: 'top-right',
+            },
+          },
+        })
+
+        // Add click handler to debug popup content
+        view.on('click', (event) => {
+          console.log('Map clicked at:', event.mapPoint)
+
+          // Perform hitTest to check for features
+          view.hitTest(event).then((response) => {
+            // Log all hit results
+            console.log('Hit test results:', response.results)
+
+            // Check for graphic results
+            const graphicResults = response.results.filter(result => result.graphic)
+            if (graphicResults.length > 0) {
+              console.log('Features found:', graphicResults.length)
+
+              // Log the first feature's attributes
+              const firstFeature = graphicResults[0].graphic
+              console.log('Feature attributes:', firstFeature.attributes)
+
+              // Force popup to show even if the feature has no popup template
+              if (!firstFeature.popupTemplate) {
+                console.log('Feature has no popup template, creating one')
+                firstFeature.popupTemplate = {
+                  title: 'Feature Information',
+                  content: [
+                    {
+                      type: 'fields',
+                      fieldInfos: [
+                        { fieldName: '*', label: '*', visible: true },
+                      ],
+                    },
+                  ],
+                }
+              }
+            }
+            else {
+              console.log('No features found at click location')
+            }
+          })
         })
 
         // Get UI configuration
