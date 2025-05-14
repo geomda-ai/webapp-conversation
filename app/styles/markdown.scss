@@ -46,11 +46,18 @@
 
 .arcgis-map-container {
   margin: 0;
+  width: 100% !important;
+  /* Force full width in container */
+  max-width: 900px;
+  /* Prevent excessive stretching on large screens */
+  min-width: 600px;
+  /* Ensure map has enough room for controls */
 }
 
 .arcgis-map-content {
-  height: 300px;
-  width: 600px;
+  height: 400px;
+  width: 100%;
+  /* Take full width of container */
 }
 
 .markdown-body {
