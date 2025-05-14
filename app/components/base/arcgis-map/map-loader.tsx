@@ -31,9 +31,8 @@ const MapLoader: React.FC<MapLoaderProps> = ({
     const loadLayers = async (services: any[], map: any, _view: any) => {
       try {
         for (const service of services) {
-          // Only log in development mode
-          if (process.env.NODE_ENV === 'development' && false)
-            console.log(`Loading service: ${service.title || 'Unnamed layer'}`)
+          // Disabled all logging for performance reasons
+          // No logging here
 
           try {
             // Build service URL with proper handling for layer IDs and special characters
@@ -275,14 +274,16 @@ const MapLoader: React.FC<MapLoaderProps> = ({
         })
 
         // Add click handler to ensure popups work for all features
-        view.on('click', (event) => {
+        view.on('click', (event: __esri.ViewClickEvent) => {
           // Perform hitTest to check for features without excessive logging
-          view.hitTest(event).then((response) => {
-            // Check for graphic results
-            const graphicResults = response.results.filter(result => result.graphic)
-            if (graphicResults.length > 0) {
+          view.hitTest(event).then((response: __esri.HitTestResult) => {
+            // Check for graphic results with proper type guard
+            const graphicResults = response.results.filter((result) => {
+              return result && 'graphic' in result && result.graphic !== null
+            })
+            if (graphicResults.length > 0 && 'graphic' in graphicResults[0]) {
               // Get the first feature
-              const firstFeature = graphicResults[0].graphic
+              const firstFeature = graphicResults[0].graphic as __esri.Graphic
 
               // Force popup to show even if the feature has no popup template
               if (!firstFeature.popupTemplate) {
