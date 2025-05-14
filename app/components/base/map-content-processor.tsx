@@ -2,7 +2,7 @@ import React from 'react'
 import yaml from 'js-yaml'
 import ArcGISMap from './arcgis-map'
 import type { ArcGISMapYAMLConfig } from './arcgis-map'
-
+import './arcgis-map/styles.css'
 // Regex for YAML-based map blocks - support both formats
 const MAP_YAML_REGEX = /```(?:map-arcgis-yaml|arcgis-map)\n([\s\S]*?)```/g
 
@@ -29,7 +29,7 @@ function processYamlMatches(content: string): {
   while ((match = MAP_YAML_REGEX.exec(contentCopy)) !== null) {
     try {
       const yamlContent = match[1]
-      const placeholder = `__MAP_PLACEHOLDER_${currentIndex}__`
+      // Skip creating a placeholder - just record the full match to replace later
       const fullMatch = match[0]
 
       // Clean up any potential markdown-formatted links in YAML before parsing
@@ -55,8 +55,8 @@ function processYamlMatches(content: string): {
         longitude = parsedConfig.center[1]
       }
 
-      // Replace YAML block with placeholder
-      processedContent = processedContent.replace(fullMatch, placeholder)
+      // Replace YAML block with placeholder - using empty string to not show the placeholder
+      processedContent = processedContent.replace(fullMatch, '')
 
       // Create map component with YAML config
       mapComponents.push(
@@ -104,33 +104,30 @@ export function ContentWithMaps({ content }: { content: string }): JSX.Element {
   if (mapComponents.length === 0)
     return <div dangerouslySetInnerHTML={{ __html: content }} />
 
-  // Split content on placeholders
-  // Hide the placeholders themselves by replacing them in the final output
-  const contentParts = processedContent.split(/(__MAP_PLACEHOLDER_\d+__)/)
+  // Instead of splitting on placeholders, we'll just render the maps in a container
+  // This avoids having placeholder text visible in the output
+  // We'll render the content directly without any splitting
 
-  // Map index counter
-  let mapIndex = 0
-
-  // Render content parts with maps inserted at placeholders
+  // Render the cleaned content and maps separately
   return (
-    <div>
-      {contentParts.map((part, i) => {
-        if (part.match(/__MAP_PLACEHOLDER_\d+__/)) {
-          // This is a placeholder, render corresponding map
-          const currentMap = mapComponents[mapIndex]
-          mapIndex++
-          return (
-            <div key={`part-${i}`} className="arcgis-map-container" style={{ margin: '1rem 0', borderRadius: '8px', overflow: 'hidden', border: '1px solid #e5e7eb' }}>
-              {currentMap}
+    <div className="map-content-wrapper">
+      {/* Regular content without placeholders */}
+      <div dangerouslySetInnerHTML={{ __html: processedContent }} />
+
+      {/* Maps are rendered after the content */}
+      {mapComponents.length > 0 && (
+        <div className="maps-container">
+          {mapComponents.map((map, index) => (
+            <div
+              key={`map-${index}`}
+              id={`map-container-${index}`}
+              className="arcgis-map-container map-md"
+            >
+              {map}
             </div>
-          )
-        }
-        else if (part.trim()) {
-          // This is regular content (only render if not empty)
-          return <div key={`part-${i}`} dangerouslySetInnerHTML={{ __html: part }} />
-        }
-        return null // Skip empty parts
-      })}
+          ))}
+        </div>
+      )}
     </div>
   )
 }

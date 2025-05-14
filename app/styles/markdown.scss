@@ -44,6 +44,15 @@
   --color-danger-fg: #cf222e;
 }
 
+.arcgis-map-container {
+  margin: 0;
+}
+
+.arcgis-map-content {
+  height: 300px;
+  width: 600px;
+}
+
 .markdown-body {
   -ms-text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;

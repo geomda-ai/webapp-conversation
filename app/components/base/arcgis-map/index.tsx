@@ -89,23 +89,30 @@ export function ArcGISMap({
     }
   }, [numLatitude, numLongitude])
 
+  // Determine the map size class based on height
+  let sizeClass = ''
+  if (height) {
+    const numericHeight = parseInt(height, 10)
+    if (numericHeight <= 300)
+      sizeClass = 'map-sm'
+    else if (numericHeight >= 600)
+      sizeClass = 'map-lg'
+    else
+      sizeClass = 'map-md'
+  }
+  else { sizeClass = 'map-md' } // Default to medium
+
   return (
     <div
-      className="arcgis-map-container"
+      className={`arcgis-map-container ${sizeClass}`}
       style={{
-        height,
-        width,
-        position: 'relative',
+        width, // Keep width as custom property
       }}
     >
       {/* Map container */}
       <div
         ref={mapRef}
         className="arcgis-map-content"
-        style={{
-          height: '100%',
-          width: '100%',
-        }}
       >
         {/* Client-side only loader */}
         {typeof window !== 'undefined' && !loadError && (

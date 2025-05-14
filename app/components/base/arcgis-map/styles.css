@@ -1,81 +1,31 @@
-/*
- * ArcGIS Map Web Component Styles
- * Modern styling for the ArcGIS web components
- */
-
-/* Import required ArcGIS styles */
 @import url("https://js.arcgis.com/4.32/@arcgis/core/assets/esri/themes/light/main.css");
 @import url("https://js.arcgis.com/calcite-components/3.1.0/calcite.css");
+@import url("https://js.arcgis.com/map-components/4.32/arcgis-map-components.css");
 
-/* Container styling */
-.arcgis-map-container {
-  position: relative;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
 
-/* Size variants */
-.map-sm {
-  min-height: 200px;
-}
 
-.map-md {
-  min-height: 400px;
-}
-
-.map-lg {
-  min-height: 600px;
-}
-
-/* Error display */
 .arcgis-map-error {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  height: 100%;
-  padding: 20px;
-  background-color: #f8d7da;
-  color: #721c24;
-  text-align: center;
-  border-radius: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    padding: 20px;
+    background-color: #f8d7da;
+    color: #721c24;
+    text-align: center;
+    border-radius: 4px;
 }
 
-/* Loading indicator */
 .arcgis-map-loading {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background-color: rgba(255, 255, 255, 0.7);
-  z-index: 1000;
-  text-align: center;
-}
-
-/* ArcGIS web component styling */
-arcgis-map {
-  display: block;
-  width: 100%;
-  height: 100%;
-}
-
-/* Ensure web components are positioned correctly */
-arcgis-zoom,
-arcgis-home,
-arcgis-compass,
-arcgis-basemap-toggle,
-arcgis-scale-bar,
-arcgis-layer-list,
-arcgis-legend {
-  z-index: 10;
-}
-
-/* Override any default ArcGIS styles to ensure proper display */
-.esri-view-surface {
-  width: 100% !important;
-  height: 100% !important;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(255, 255, 255, 0.7);
+    z-index: 1000;
+    text-align: center;
 }
