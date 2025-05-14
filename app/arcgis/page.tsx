@@ -4,6 +4,9 @@ import React, { useCallback, useEffect, useState } from 'react'
 import yaml from 'js-yaml'
 import ArcGISMap from '../components/base/arcgis-map'
 
+// Import styles for modern ArcGIS web components
+import '../components/base/arcgis-map/styles.css'
+
 // Default YAML configuration
 const defaultYamlConfig = `center: 40.7128, -74.0060
 zoom: 10
@@ -131,7 +134,7 @@ export default function ArcGISMapPage() {
         <div>
           {mapConfig
             ? (
-              <div className="h-96 border rounded overflow-hidden">
+              <div className="h-96 border rounded overflow-hidden relative" style={{ minHeight: '500px' }}>
                 <ArcGISMap
                   yamlConfig={mapConfig}
                   latitude={latitude}

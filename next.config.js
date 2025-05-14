@@ -16,6 +16,20 @@ const nextConfig = {
     // https://nextjs.org/docs/api-reference/next.config.js/ignoring-typescript-errors
     ignoreBuildErrors: true,
   },
+
+  // Handle ArcGIS assets with modern Next.js approach
+  webpack: (config) => {
+    // Add rule for ArcGIS assets including fonts using Next.js 14 recommended approach
+    config.module.rules.push({
+      test: /\.(ttf|woff|woff2|eot)$/,
+      type: 'asset/resource',
+      generator: {
+        filename: 'static/fonts/[name][ext]',
+      },
+    })
+
+    return config
+  },
 }
 
 module.exports = nextConfig
