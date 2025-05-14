@@ -36,7 +36,7 @@ function processYamlMatches(content: string): {
       const cleanYamlContent = yamlContent.replace(/\[([^\]]+)\]\(([^\)]+)\)/g, '$2')
       // Parse YAML content
       const parsedConfig = yaml.load(cleanYamlContent) as ArcGISMapYAMLConfig
-      console.log('Parsed YAML map config:', parsedConfig)
+      // Remove excessive logging that causes browser freezing
 
       // Convert center string to coordinates if needed
       let latitude = 0

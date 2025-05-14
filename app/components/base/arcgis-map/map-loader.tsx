@@ -31,7 +31,9 @@ const MapLoader: React.FC<MapLoaderProps> = ({
     const loadLayers = async (services: any[], map: any, _view: any) => {
       try {
         for (const service of services) {
-          console.log(`Loading service: ${service.title || 'Unnamed layer'}`, service)
+          // Only log in development mode
+          if (process.env.NODE_ENV === 'development' && false)
+            console.log(`Loading service: ${service.title || 'Unnamed layer'}`)
 
           try {
             // Build service URL with proper handling for layer IDs and special characters
@@ -47,7 +49,7 @@ const MapLoader: React.FC<MapLoaderProps> = ({
               const path = urlParts.slice(3).join('/')
               const encodedPath = encodeURI(decodeURI(path)) // Fix double-encoding issues
               serviceUrl = `${domain}/${encodedPath}`
-              console.log('Encoded service URL:', serviceUrl)
+              // No need to log encoded URL
             }
             catch (error) {
               console.warn('Error encoding service URL:', error)
@@ -68,8 +70,7 @@ const MapLoader: React.FC<MapLoaderProps> = ({
               ],
             }
 
-            // Log popup configuration for debugging
-            console.log('PopupTemplate configuration:', popupTemplate)
+            // No need to log popup configuration
 
             // Import layer modules dynamically based on service type
             if (service.type === 'FeatureServer' || service.type === 'FeatureService'
@@ -101,9 +102,9 @@ const MapLoader: React.FC<MapLoaderProps> = ({
                 },
               })
 
-              // Add error handling for the layer
+              // Add error handling for the layer but reduce logging
               layer.when(
-                () => console.log(`Successfully loaded layer: ${service.title || 'Unnamed layer'}`),
+                () => { /* Success - no need to log */ },
                 (error: any) => console.warn(`Error loading layer: ${service.title || 'Unnamed layer'}`, error),
               )
 
@@ -129,9 +130,9 @@ const MapLoader: React.FC<MapLoaderProps> = ({
                 ],
               })
 
-              // Add error handling
+              // Add error handling with reduced logging
               layer.when(
-                () => console.log(`Successfully loaded MapServer layer: ${service.title || 'Unnamed layer'}`),
+                () => { /* Success - no need to log */ },
                 (error: any) => console.warn(`Error loading MapServer layer: ${service.title || 'Unnamed layer'}`, error),
               )
 
@@ -150,9 +151,9 @@ const MapLoader: React.FC<MapLoaderProps> = ({
                 title: service.title || 'Imagery Layer',
               })
 
-              // Add error handling
+              // Add error handling with reduced logging
               layer.when(
-                () => console.log(`Successfully loaded ImageServer layer: ${service.title || 'Unnamed layer'}`),
+                () => { /* Success - no need to log */ },
                 (error: any) => console.warn(`Error loading ImageServer layer: ${service.title || 'Unnamed layer'}`, error),
               )
 
@@ -171,9 +172,9 @@ const MapLoader: React.FC<MapLoaderProps> = ({
                 title: service.title || 'Vector Tile Layer',
               })
 
-              // Add error handling
+              // Add error handling with reduced logging
               layer.when(
-                () => console.log(`Successfully loaded VectorTile layer: ${service.title || 'Unnamed layer'}`),
+                () => { /* Success - no need to log */ },
                 (error: any) => console.warn(`Error loading VectorTile layer: ${service.title || 'Unnamed layer'}`, error),
               )
 
@@ -271,27 +272,18 @@ const MapLoader: React.FC<MapLoaderProps> = ({
           },
         })
 
-        // Add click handler to debug popup content
+        // Add click handler to ensure popups work for all features
         view.on('click', (event) => {
-          console.log('Map clicked at:', event.mapPoint)
-
-          // Perform hitTest to check for features
+          // Perform hitTest to check for features without excessive logging
           view.hitTest(event).then((response) => {
-            // Log all hit results
-            console.log('Hit test results:', response.results)
-
             // Check for graphic results
             const graphicResults = response.results.filter(result => result.graphic)
             if (graphicResults.length > 0) {
-              console.log('Features found:', graphicResults.length)
-
-              // Log the first feature's attributes
+              // Get the first feature
               const firstFeature = graphicResults[0].graphic
-              console.log('Feature attributes:', firstFeature.attributes)
 
               // Force popup to show even if the feature has no popup template
               if (!firstFeature.popupTemplate) {
-                console.log('Feature has no popup template, creating one')
                 firstFeature.popupTemplate = {
                   title: 'Feature Information',
                   content: [
@@ -304,9 +296,6 @@ const MapLoader: React.FC<MapLoaderProps> = ({
                   ],
                 }
               }
-            }
-            else {
-              console.log('No features found at click location')
             }
           })
         })
@@ -399,7 +388,7 @@ const MapLoader: React.FC<MapLoaderProps> = ({
       }
       catch (error) {
         try {
-          view.destroy()
+          view?.destroy()
         }
         catch (error) {
           console.error('Error destroying view:', error)
@@ -409,21 +398,23 @@ const MapLoader: React.FC<MapLoaderProps> = ({
       }
     }
 
-    // Call the loadMap function
+    // Load the map only once when the component mounts
     loadMap()
 
-    // Cleanup function
+    // Return cleanup function to destroy view when component unmounts
     return () => {
       if (view) {
         try {
           view.destroy()
         }
-        catch (destroyError) {
-          // Ignore errors when destroying the view
+        catch (error) {
+          console.error('Error destroying view:', error)
         }
       }
     }
-  }, [mapRef, yamlConfig, setLoading])
+    // Empty dependency array ensures this only runs once on mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
 
   return null
 }
